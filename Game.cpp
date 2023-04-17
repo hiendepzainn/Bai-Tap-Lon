@@ -1,205 +1,232 @@
-#include<bits/stdc++.h>
-#include<conio.h>
-using namespace std;
+#include <SDL.h>
+#include <SDL_image.h>
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
 
-void upmove(int a[4][4])
-{
-	int i,j,li,ri;
-	for(j=0;j<4;j++)
-	{
-		li=0,ri=j;
-		for(i=1;i<4;i++)
-		{
-			if(a[i][j]!=0)
-			{
-				if(a[i-1][j]==0 || a[i-1][j]==a[i][j])
-				{
-					if(a[li][ri]==a[i][j])
-					{
-						a[li][ri]*=2;
-						a[i][j]=0;
-					}
-					else
-					{
-						if(a[li][ri]==0)
-						{
-							a[li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-						else
-						{
-							a[++li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-					}
-				}
-				else li++;
-			}
-		}
-	}
+// Constants
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
+const int PIPE_GAP = 150;
+const int PIPE_WIDTH = 50;
+const int BIRD_WIDTH = 40;
+const int BIRD_HEIGHT = 30;
+const int GRAVITY = 1;
+
+// Structs
+struct Bird {
+    int x;
+    int y;
+    int velocity;
+};
+
+struct Pipe {
+    int x;
+    int height;
+    bool counted;
+};
+
+// Global variables
+SDL_Window* gWindow = nullptr;
+SDL_Renderer* gRenderer = nullptr;
+SDL_Texture* gBackgroundTexture = nullptr;
+SDL_Texture* gBirdTexture = nullptr;
+SDL_Texture* gPipeTexture = nullptr;
+
+// Function prototypes
+bool init();
+bool loadMedia();
+void close();
+void update(Bird& bird, std::vector<Pipe>& pipes);
+void render(Bird& bird, std::vector<Pipe>& pipes);
+int random(int min, int max);
+
+// Function implementations
+bool init() {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        std::cout << "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1")) {
+        std::cout << "Warning: Linear texture filtering not enabled!" << std::endl;
+    }
+
+    gWindow = SDL_CreateWindow("Flappy Bird", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    if (gWindow == nullptr) {
+        std::cout << "Window could not be created! SDL Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (gRenderer == nullptr) {
+        std::cout << "Renderer could not be created! SDL Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+    int imgFlags = IMG_INIT_PNG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        std::cout << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
-void downmove(int a[4][4])
-{
-	int i,j,li,ri;
-	for(j=0;j<4;j++)
-	{
-		li=3,ri=j;
-		for(i=2;i>=0;i--)
-		{
-			if(a[i][j]!=0)
-			{
-				if(a[i+1][j]==0 || a[i+1][j]==a[i][j])
-				{
-					if(a[li][ri]==a[i][j])
-					{
-						a[li][ri]*=2;
-						a[i][j]=0;
-					}
-					else
-					{
-						if(a[li][ri]==0)
-						{
-							a[li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-						else
-						{
-							a[--li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-					}
-				}
-				else li--;
-			}
-		}
-	}
+bool loadMedia() {
+    SDL_Surface* surface = nullptr;
+
+    surface = IMG_Load("background.png");
+    if (surface == nullptr) {
+        std::cout << "Unable to load image! SDL_image Error: " << IMG_GetError() << std::endl;
+        return false;
+    }
+    gBackgroundTexture = SDL_CreateTextureFromSurface(gRenderer, surface);
+    SDL_FreeSurface(surface);
+
+    surface = IMG_Load("bird.png");
+    if (surface == nullptr) {
+        std::cout << "Unable to load image! SDL_image Error: " << IMG_GetError() << std::endl;
+        return false;
+    }
+    gBirdTexture = SDL_CreateTextureFromSurface(gRenderer, surface);
+    SDL_FreeSurface(surface);
+
+    surface = IMG_Load("pipe.png");
+    if (surface == nullptr) {
+        std::cout << "Unable to load image! SDL_image Error: " << IMG_GetError() << std::endl;
+
+}
+gPipeTexture = SDL_CreateTextureFromSurface(gRenderer, surface);
+SDL_FreeSurface(surface);
+
+return true;
 }
 
-void leftmove(int a[4][4])
-{
-	int i,j,li,ri;
-	for(i=0;i<4;i++)
-	{
-		li=i,ri=0;
-		for(j=1;j<4;j++)
-		{
-			if(a[i][j]!=0)
-			{
-				if(a[i][j-1]==0 || a[i][j-1]==a[i][j])
-				{
-					if(a[li][ri]==a[i][j])
-					{
-						a[li][ri]*=2;
-						a[i][j]=0;
-					}
-					else
-					{
-						if(a[li][ri]==0)
-						{
-							a[li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-						else
-						{
-							a[li][++ri]=a[i][j];
-							a[i][j]=0;
-						}
-					}
-				}
-				else ri++;
-			}
-		}
-	}
+void close() {
+SDL_DestroyTexture(gBackgroundTexture);
+SDL_DestroyTexture(gBirdTexture);
+SDL_DestroyTexture(gPipeTexture);
+gBackgroundTexture = nullptr;
+gBirdTexture = nullptr;
+gPipeTexture = nullptr;
+SDL_DestroyRenderer(gRenderer);
+SDL_DestroyWindow(gWindow);
+gRenderer = nullptr;
+gWindow = nullptr;
+
+IMG_Quit();
+SDL_Quit();
 }
 
-void rightmove(int a[4][4])
-{
-	int i,j,li,ri;
-	for(i=0;i<4;i++)
-	{
-		li=i,ri=3;
-		for(j=2;j>=0;j--)
-		{
-			if(a[i][j]!=0)
-			{
-				if(a[i][j+1]==0 || a[i][j+1]==a[i][j])
-				{
-					if(a[li][ri]==a[i][j])
-					{
-						a[li][ri]*=2;
-						a[i][j]=0;
-					}
-					else
-					{
-						if(a[li][ri]==0)
-						{
-							a[li][ri]=a[i][j];
-							a[i][j]=0;
-						}
-						else
-						{
-							a[li][--ri]=a[i][j];
-							a[i][j]=0;
-						}
-					}
-				}
-				else ri--;
-			}
-		}
-	}
+void update(Bird& bird, std::vector<Pipe>& pipes) {
+// Move bird
+bird.velocity += GRAVITY;
+bird.y += bird.velocity;
+// Move pipes
+for (auto& pipe : pipes) {
+    pipe.x -= 3;
 }
 
-void addblock()
-{
-	
+// Spawn new pipes
+if (pipes.back().x < SCREEN_WIDTH - PIPE_GAP) {
+    Pipe newPipe;
+    newPipe.x = SCREEN_WIDTH;
+    newPipe.height = random(50, SCREEN_HEIGHT - 250);
+    newPipe.counted = false;
+    pipes.push_back(newPipe);
 }
 
-void disp()
-{
-	
+// Remove pipes that have gone off-screen
+if (pipes.front().x + PIPE_WIDTH < 0) {
+    pipes.erase(pipes.begin());
 }
 
-int check()
-{
-	
+// Check for collision with pipes
+for (auto& pipe : pipes) {
+    if (bird.x + BIRD_WIDTH > pipe.x && bird.x < pipe.x + PIPE_WIDTH) {
+        if (bird.y < pipe.height || bird.y + BIRD_HEIGHT > pipe.height + PIPE_GAP) {
+            std::cout << "Game over!" << std::endl;
+            SDL_Delay(2000);
+            exit(0);
+        }
+    }
+
+    // Count pipes passed
+    if (!pipe.counted && pipe.x + PIPE_WIDTH < bird.x) {
+        pipe.counted = true;
+        std::cout << "Score: " << pipes.size() - 4 << std::endl;
+    }
+}
 }
 
-int checkover()
-{
-	
+void render(Bird& bird, std::vector<Pipe>& pipes) {
+// Clear screen
+SDL_RenderClear(gRenderer);
+// Render background
+SDL_RenderCopy(gRenderer, gBackgroundTexture, NULL, NULL);
+
+// Render pipes
+for (auto& pipe : pipes) {
+    SDL_Rect pipeRect = { pipe.x, 0, PIPE_WIDTH, pipe.height };
+    SDL_RenderCopy(gRenderer, gPipeTexture, NULL, &pipeRect);
+
+    SDL_Rect pipeRect2 = { pipe.x, pipe.height + PIPE_GAP, PIPE_WIDTH, SCREEN_HEIGHT - (pipe.height + PIPE_GAP) };
+    SDL_RenderCopy(gRenderer, gPipeTexture, NULL, &pipeRect2);
 }
 
-int main()
-{
-	cout<<"GAME 2048      Press any key for starting";
-	getch();
-	system("cls");
-	int i1,i2,i3,i4,i,j;
-	int a[4][4]={0},tmp[4][4]={0};
-	srand(time(0));
-	i1=rand()%4;
-	i2=rand()%4;
-	while(1)
-	{
-		i3=rand()%4;
-		i4=rand()%4;
-		if(i3!=i1 && i4!=i2) break;
-	}
+// Render bird
+SDL_Rect birdRect = { bird.x, bird.y, BIRD_WIDTH, BIRD_HEIGHT };
+SDL_RenderCopy(gRenderer, gBirdTexture, NULL, &birdRect);
 
-	int ch;
-	while (1)
-    {
-    	for(i=0;i<4;i++)
-    		for(j=0;j<4;j++)
-    			tmp[i][j]=a[i][j];
-    	ch=getch();
-    	system("cls");
-    	if(ch==72) upmove(a);
-    	if(ch==80) downmove(a);
-    	if(ch==75) leftmove(a);
-    	if(ch==77) rightmove(a);
-		if(ch==27) break;
+// Update screen
+SDL_RenderPresent(gRenderer);
+}
 
-	return 0;
+int random(int min, int max) {
+return min + rand() % (max - min + 1);
+}
+
+int main(int argc, char* argv[]) {
+srand(time(nullptr));
+if (!init() || !loadMedia()) {
+    std::cout << "Failed to initialize or load media" << std::endl;
+    return 1;
+}
+
+Bird bird = { SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2, -10 };
+std::vector<Pipe> pipes = { { SCREEN_WIDTH, SCREEN_HEIGHT / 2, false }, { SCREEN_WIDTH + SCREEN_WIDTH / 2, SCREEN_HEIGHT / 3, false }, {
+SCREEN_WIDTH + SCREEN_WIDTH, SCREEN_HEIGHT - SCREEN_HEIGHT / 4, false } };
+
+bool quit = false;
+SDL_Event e;
+
+while (!quit) {
+    // Handle events
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            quit = true;
+        } else if (e.type == SDL_KEYDOWN) {
+            if (e.key.keysym.sym == SDLK_SPACE) {
+                bird.velocity = -10;
+            }
+        }
+    }
+
+    // Update game
+    update(bird, pipes);
+
+    // Render game
+    render(bird, pipes);
+
+    // Wait for a short time
+    SDL_Delay(10);
+}
+
+close();
+
+return 0;
 }
