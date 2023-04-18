@@ -122,19 +122,21 @@ IMG_Quit();
 SDL_Quit();
 }
 
+int score = 0;
+
 void update(Bird& bird, std::vector<Pipe>& pipes) {
 // Move bird
 bird.velocity += GRAVITY;
 bird.y += bird.velocity;
 // Move pipes
 for (auto& pipe : pipes) {
-    pipe.x -= 3;
+    pipe.x -= 2;
 }
 
 // Spawn new pipes
 if (pipes.back().x < SCREEN_WIDTH - PIPE_GAP) {
     Pipe newPipe;
-    newPipe.x = SCREEN_WIDTH;
+    newPipe.x = SCREEN_WIDTH + 200;
     newPipe.height = random(50, SCREEN_HEIGHT - 250);
     newPipe.counted = false;
     pipes.push_back(newPipe);
@@ -158,7 +160,8 @@ for (auto& pipe : pipes) {
     // Count pipes passed
     if (!pipe.counted && pipe.x + PIPE_WIDTH < bird.x) {
         pipe.counted = true;
-        std::cout << "Score: " << pipes.size() - 4 << std::endl;
+        score ++;
+        std::cout << "Score: " << score << std::endl;
     }
 }
 }
